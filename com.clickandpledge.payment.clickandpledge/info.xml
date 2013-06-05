@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension key="com.clickandpledge.payment.clickandpledge" type="payment">
+  <downloadUrl>https://manual.clickandpledge.com/CiviCRM.html</downloadUrl>
+  <file>clickandpledge</file>
+  <name>ClickandPledge</name>
+  <description>Click &amp; Pledge Payment Processor</description>
+  <urls>
+    <url desc="Main Extension Page">http://manual.clickandpledge.com</url>
+  </urls>
+  <license>AGPL</license>
+  <maintainer>
+    <author>Kamran Razvan</author>
+    <email>Kamran@clickandpledge.com</email>
+  </maintainer>
+  <releaseDate>2012-06-01</releaseDate>
+  <version>2.0</version>
+  <develStage>stable</develStage>
+  <compatibility><ver>4.2</ver></compatibility>
+  <comments>For support, please contact project team on the forums.</comments>
+  <typeInfo>
+   <userNameLabel>Account ID</userNameLabel>
+   <passwordLabel>API Account GUID</passwordLabel>
+   <signatureLabel></signatureLabel>
+   <subjectLabel></subjectLabel>
+   <urlSiteDefault>https://manual.clickandpledge.com/</urlSiteDefault>
+   <urlApiDefault></urlApiDefault>
+   <urlRecurDefault>https://manual.clickandpledge.com/</urlRecurDefault>
+   <urlSiteTestDefault>https://manual.clickandpledge.com/</urlSiteTestDefault>
+   <urlApiTestDefault></urlApiTestDefault>
+   <urlRecurTestDefault>https://manual.clickandpledge.com/</urlRecurTestDefault>
+   <urlButtonDefault></urlButtonDefault>
+   <urlButtonTestDefault></urlButtonTestDefault>
+   <billingMode>form</billingMode>
+   <isRecur>1</isRecur>
+   <paymentType>1</paymentType>
+  </typeInfo>
+</extension>
