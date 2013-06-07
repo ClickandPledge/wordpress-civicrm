@@ -173,8 +173,15 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 	$item_parts = explode(':',$params['description']);
 	if( trim( $item_parts[0] ) == 'Online Event Registration' )
 	{
-		 $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
+		 /*
+     //for CiviCRM 4.2
+     $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
 		inner join civicrm_contribution_type on civicrm_event.contribution_type_id=civicrm_contribution_type.id
+		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
+    */
+    //for CiviCRM 4.3
+    $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
+		inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
 		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
 		$dao = CRM_Core_DAO::executeQuery($query);
 		$rows = 0;
@@ -203,8 +210,8 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 		}
 	
 		$ResultCode=$response->OperationResult->ResultCode;
-		$transation_number=$response->OperationResult->TransactionNumber;
-		 
+		//$transation_number=$response->OperationResult->TransactionNumber;
+		 $transation_number=$response->OperationResult->VaultGUID;
 		
 		if($ResultCode=='0')
 		{
@@ -287,7 +294,9 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 	
   function buildXML( $params, $xmlpath )
   {
-	
+	//echo '<pre>';
+  //print_r($params);
+ // die();
 	$configValues = $this->_paymentProcessor;
 
 		$dom = new DOMDocument('1.0', 'UTF-8');
@@ -593,7 +602,12 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				$confirm_email_text = '';
 				if( isset( $params['contributionTypeID'] ) && $params['contributionTypeID'] != '' )
 				{
-				$query = "SELECT *  FROM  civicrm_contribution_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
+				/*
+        //for CiviCRM 4.2
+        $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
+        */
+        //for CiviCRM 4.3
+        $query = "SELECT *  FROM  civicrm_financial_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
 					$dao = CRM_Core_DAO::executeQuery($query);
 					if ($dao->fetch()) {
 						if( $dao->is_deductible == '1' )
@@ -606,7 +620,12 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				}
 				elseif( isset( $params['contributionType_name'] ) && $params['contributionType_name'] != '' )
 				{
-				$query = "SELECT *  FROM  civicrm_contribution_type  WHERE  name = '" . $params['contributionType_name'] . "'";
+				/*
+        //for CiviCRM 4.2
+        $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  name = '" . $params['contributionType_name'] . "'";
+        */
+        //for CiviCRM 4.3
+        $query = "SELECT *  FROM  civicrm_financial_type  WHERE  id = '" . $params['contributionType_name'] . "'";
 					$dao = CRM_Core_DAO::executeQuery($query);
 					if ($dao->fetch()) {
 						if( $dao->is_deductible == '1' )
@@ -619,9 +638,16 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				}
 				elseif( trim( $item_parts[0] ) == 'Online Event Registration' )
 				{
-					$query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
+					/*
+          //For CiviCRM 4.2
+          $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
 					inner join civicrm_contribution_type on civicrm_event.contribution_type_id=civicrm_contribution_type.id
 					WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
+          */
+          //For CiviCRM 4.3
+           $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
+		inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
+		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
 					$dao = CRM_Core_DAO::executeQuery($query);
 					
 					if ($dao->fetch()) {
@@ -758,7 +784,10 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			//No need of doing this as we sending unitdeductible above. But for clean coding we need to do this
 			if( isset( $params['contributionTypeID'] ) && $params['contributionTypeID'] != '' )
 			{
-			$query = "SELECT *  FROM  civicrm_contribution_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
+			/*
+      $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
+      */
+      $query = "SELECT *  FROM  civicrm_financial_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
 				$dao = CRM_Core_DAO::executeQuery($query);
 				if ($dao->fetch()) {
 					if( $dao->is_deductible == '1' )
@@ -774,7 +803,10 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			}
 			elseif( isset( $params['contributionType_name'] ) && $params['contributionType_name'] != '' )
 			{
-			$query = "SELECT *  FROM  civicrm_contribution_type  WHERE  name = '" . $params['contributionType_name'] . "'";
+			/*
+      $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  name = '" . $params['contributionType_name'] . "'";
+      */
+      $query = "SELECT *  FROM  civicrm_financial_type  WHERE  name = '" . $params['contributionType_name'] . "'";
 				$dao = CRM_Core_DAO::executeQuery($query);
 				if ($dao->fetch()) {
 					if( $dao->is_deductible == '1' )
@@ -790,10 +822,16 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			}
 			elseif( trim( $item_parts[0] ) == 'Online Event Registration' )
 			{
-				$query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm  FROM  civicrm_event  
+				/*
+        $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_contribution_type.is_deductible, civicrm_contribution_type.name,civicrm_event.is_email_confirm  FROM  civicrm_event  
 				inner join civicrm_contribution_type on civicrm_event.contribution_type_id=civicrm_contribution_type.id
 				WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
-								
+        */
+				
+      $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
+		inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
+		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
+    
 				$dao = CRM_Core_DAO::executeQuery($query);
 				
 				if ($dao->fetch()) {
