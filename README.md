@@ -1,7 +1,7 @@
-wordpress-civicrm
+Wordpress-CiviCRM
 =================
 
-Integration of WordPress for civiCRM with the Click &amp; Pledge Payment Processing API &amp; Salesforce CRM
+Integration of WordPress for CiviCRM with the Click &amp; Pledge Payment Processing API &amp; Salesforce CRM
 
 References:
 

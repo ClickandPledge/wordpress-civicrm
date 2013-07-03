@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension key="com.clickandpledge.payment.clickandpledge" type="payment">
-  <downloadUrl>https://manual.clickandpledge.com/CiviCRM.html</downloadUrl>
+  <downloadUrl>https://github.com/ClickandPledge/wordpress-civicrm/archive/master.zip</downloadUrl>
   <file>clickandpledge</file>
   <name>ClickandPledge</name>
   <description>Click &amp; Pledge Payment Processor</description>
@@ -13,9 +13,9 @@
     <email>Kamran@clickandpledge.com</email>
   </maintainer>
   <releaseDate>2012-06-01</releaseDate>
-  <version>2.0</version>
+  <version>3.0</version>
   <develStage>stable</develStage>
-  <compatibility><ver>4.2</ver></compatibility>
+  <compatibility><ver>4.3</ver></compatibility>
   <comments>For support, please contact project team on the forums.</comments>
   <typeInfo>
    <userNameLabel>Account ID</userNameLabel>
