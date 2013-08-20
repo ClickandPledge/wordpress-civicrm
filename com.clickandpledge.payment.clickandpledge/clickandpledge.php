@@ -196,7 +196,8 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 	}
 		
 	 $strParam =  $this->buildXML( $params, $package_path[0] );
-	
+	//echo $strParam;
+	//die();
 	  $connect = array('soap_version' => SOAP_1_1, 'trace' => 1, 'exceptions' => 0);
 		 $client = new SoapClient('https://paas.cloud.clickandpledge.com/paymentservice.svc?wsdl', $connect);
 		 $soapParams = array('instruction'=>$strParam);
@@ -294,9 +295,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 	
   function buildXML( $params, $xmlpath )
   {
-	//echo '<pre>';
-  //print_r($params);
- // die();
+	
 	$configValues = $this->_paymentProcessor;
 
 		$dom = new DOMDocument('1.0', 'UTF-8');
@@ -319,7 +318,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			 $applicationname=$dom->createElement('Name','CnP_CiviCRM_WordPress'); //CnP_CiviCRM_WordPress#CnP_CiviCRM_Joomla#CnP_CiviCRM_Drupal
 			 $applicationid=$application->appendChild($applicationname);
 			
-			 $applicationversion=$dom->createElement('Version','2.001.000.000.20130304');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date
+			 $applicationversion=$dom->createElement('Version','2.002.000.000.20130820');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date
 			 $applicationversion=$application->appendChild($applicationversion);
     
     		 $request = $dom->createElement('Request', '');
@@ -594,7 +593,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				$quntity=$dom->createElement('Quantity','1');
 				$quntity=$orderitem->appendChild($quntity);
 				 
-				$unitprice=$dom->createElement('UnitPrice',($params['amount']*100));
+				$unitprice=$dom->createElement('UnitPrice',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 				$unitprice=$orderitem->appendChild($unitprice);
 				
 				
@@ -612,7 +611,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 					if ($dao->fetch()) {
 						if( $dao->is_deductible == '1' )
 						{
-							$unit_deduct=$dom->createElement('UnitDeductible',($params['amount']*100));
+							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 							$unit_deduct=$orderitem->appendChild($unit_deduct);	
 						}
 						
@@ -630,7 +629,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 					if ($dao->fetch()) {
 						if( $dao->is_deductible == '1' )
 						{
-							$unit_deduct=$dom->createElement('UnitDeductible',($params['amount']*100));
+							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 							$unit_deduct=$orderitem->appendChild($unit_deduct);	
 						}
 						
@@ -657,7 +656,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 						}
 						if( $dao->is_deductible == '1' )
 						{
-							$unit_deduct=$dom->createElement('UnitDeductible',($params['amount']*100));
+							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 							$unit_deduct=$orderitem->appendChild($unit_deduct);	
 						}
 						
@@ -795,7 +794,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 						$recipt_deduct=$dom->createElement('Deductible','1');
 						$recipt_deduct=$receipt->appendChild($recipt_deduct);
 						
-						$total_deduct=$dom->createElement('TotalDeductible',($params['amount']*100));
+						$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 						$total_deduct=$trans_totals->appendChild($total_deduct);
 					}
 					
@@ -814,7 +813,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 						$recipt_deduct=$dom->createElement('Deductible','1');
 						$recipt_deduct=$receipt->appendChild($recipt_deduct);
 						
-						$total_deduct=$dom->createElement('TotalDeductible',($params['amount']*100));
+						$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 						$total_deduct=$trans_totals->appendChild($total_deduct);
 					}
 					
@@ -843,7 +842,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 						$recipt_deduct=$dom->createElement('Deductible','1');
 						$recipt_deduct=$receipt->appendChild($recipt_deduct);
 						
-						$total_deduct=$dom->createElement('TotalDeductible',($params['amount']*100));
+						$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 						$total_deduct=$trans_totals->appendChild($total_deduct);
 					}
 					
@@ -871,7 +870,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				$email_note=$dom->createElement('NotificationEmail',$email_notification);
 				$email_note=$recipt_email->appendChild($email_note);
 			} 
-			 $total_amount=$dom->createElement('Total',($params['amount']*100));
+			 $total_amount=$dom->createElement('Total',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
 			 $total_amount=$trans_totals->appendChild($total_amount);
 			 
 	         $strParam =$dom->saveXML();
