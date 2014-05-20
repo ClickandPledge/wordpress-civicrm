@@ -13,9 +13,9 @@
     <email>Kamran@clickandpledge.com</email>
   </maintainer>
   <releaseDate>2013-08-20</releaseDate>
-  <version>3.1</version>
+  <version>3.2</version>
   <develStage>stable</develStage>
-  <compatibility><ver>4.3</ver></compatibility>
+  <compatibility><ver>4.4.4</ver></compatibility>
   <comments>For support, please contact project team on the forums.</comments>
   <typeInfo>
    <userNameLabel>Account ID</userNameLabel>

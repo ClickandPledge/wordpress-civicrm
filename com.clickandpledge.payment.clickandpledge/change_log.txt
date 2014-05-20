@@ -1,0 +1,19 @@
+-----------------------------------------------------------------------------
+Version 3.2.0    
+- Catch the 'in honor of/in memory of' in receipt. Reference case 21688
+
+-----------------------------------------------------------------------------
+Version 3.1.0    
+- Amount handle changed CiviCRM4.3.4. Aug 20, 2013
+
+-----------------------------------------------------------------------------
+Version 2.1    
+- Updated code for CiviCRM 4.3. Changed Transaction number to VaultGUID. Jul 03, 2013 
+
+-----------------------------------------------------------------------------
+Version 1.1    
+- Fixed validation issue. Jun 7, 2013
+
+-----------------------------------------------------------------------------
+Version 1.0
+- First Release Jun 5, 2013
