@@ -278,7 +278,8 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
   
   function safeString( $str,  $length=1, $start=0 )
 	{
-		return substr( htmlentities( $str ), $start, $length );
+		$str = preg_replace('/\x03/', '', $str); //Remove new line characters
+		return substr( htmlspecialchars( $str ), $start, $length );
 	}
 	
 	function safeStringReplace( $str )
@@ -312,7 +313,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			 $applicationname=$dom->createElement('Name','CnP_CiviCRM_WordPress'); //CnP_CiviCRM_WordPress#CnP_CiviCRM_Joomla#CnP_CiviCRM_Drupal
 			 $applicationid=$application->appendChild($applicationname);
 			
-			 $applicationversion=$dom->createElement('Version','2.002.000.000.20130820');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date
+			 $applicationversion=$dom->createElement('Version','3.002.001.000.20141008');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date(yyyymmdd)
 			 $applicationversion=$application->appendChild($applicationversion);
     
     		 $request = $dom->createElement('Request', '');

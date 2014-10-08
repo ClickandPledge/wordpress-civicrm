@@ -1,4 +1,8 @@
 -----------------------------------------------------------------------------
+Version 3.2.1    
+- Fixed special characters issue (Ref:help desk 26127)
+
+-----------------------------------------------------------------------------
 Version 3.2.0    
 - Catch the 'in honor of/in memory of' in receipt. Reference case 21688
 
