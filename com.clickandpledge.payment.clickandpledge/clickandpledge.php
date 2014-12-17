@@ -30,6 +30,9 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
   static protected $_mode = null;
   
   var $responsecodes = array(2055=>'AccountGuid is not valid',2056=>'AccountId is not valid',2057=>'Username is not valid',2058=>'Password is not valid',2059=>'Invalid recurring parameters',2060=>'Account is disabled',2101=>'Cardholder information is null',2102=>'Cardholder information is null',2103=>'Cardholder information is null',2104=>'Invalid billing country',2105=>'Credit Card number is not valid',2106=>'Cvv2 is blank',2107=>'Cvv2 length error',2108=>'Invalid currency code',2109=>'CreditCard object is null',2110=>'Invalid card type ',2111=>'Card type not currently accepted',2112=>'Card type not currently accepted',2210=>'Order item list is empty',2212=>'CurrentTotals is null',2213=>'CurrentTotals is invalid',2214=>'TicketList lenght is not equal to quantity',2215=>'NameBadge lenght is not equal to quantity',2216=>'Invalid textonticketbody',2217=>'Invalid textonticketsidebar',2218=>'Invalid NameBadgeFooter',2304=>'Shipping CountryCode is invalid',2401=>'IP address is null',2402=>'Invalid operation',2501=>'WID is invalid',2502=>'Production transaction is not allowed. Contact support for activation.',2601=>'Invalid character in a Base-64 string',2701=>'ReferenceTransaction Information Cannot be NULL',2702=>'Invalid Refrence Transaction Information',2703=>'Expired credit card',2805=>'eCheck Account number is invalid',2807=>'Invalid payment method',2809=>'Invalid payment method',2811=>'eCheck payment type is currently not accepted',2812=>'Invalid check number',5001=>'Declined (general)',5002=>'Declined (lost or stolen card)',5003=>'Declined (fraud)',5004=>'Declined (Card expired)',5005=>'Declined (Cvv2 is not valid)',5006=>'Declined (Insufficient fund)',5007=>'Declined (Invalid credit card number)');
+  
+  var $country_code = array( 'DE' => '276','AT' => '040','BE' => '056','CA' => '124','CN' => '156','ES' => '724',	'FI' => '246','FR' => '250','GR' => '300', 'IT' => '380','JP' => '392','LU' => '442', 'NL' => '528','PL' => '616','PT' => '620','CZ' => '203','GB' => '826','SE' => '752', 'CH' => '756','DK' => '208','US' => '840','HK' => '344','NO' => '578','AU' => '036',	'SG' => '702','IE' => '372','NZ' => '554','KR' => '410','IL' => '376','ZA' => '710','NG' => '566','CI' => '384','TG' => '768','BO' => '068','MU' => '480','RO' => '642',	'SK' => '703','DZ' => '012','AS' => '016','AD' => '020','AO' => '024','AI' => '660',	'AG' => '028','AR' => '032','AM' => '051','AW' => '533','AZ' => '031','BS' => '044',	'BH' => '048','BD' => '050','BB' => '052','BY' => '112','BZ' => '084','BJ' => '204',	'BT' => '060','56' => '064','BW' => '072','BR' => '076','BN' => '096','BF' => '854',	'MM' => '104','BI' => '108','KH' => '116','CM' => '120','CV' => '132','CF' => '140',	'TD' => '148','CL' => '152','CO' => '170','KM' => '174','CD' => '180','CG' => '178',	'CR' => '188','HR' => '191','CU' => '192','CY' => '196','DJ' => '262','DM' => '212',	'DO' => '214','TL' => '626','EC' => '218','EG' => '818','SV' => '222','GQ' => '226',	'ER' => '232','EE' => '233','ET' => '231','FK' => '238','FO' => '234','FJ' => '242', 'GA' => '266','GM' => '270','GE' => '268','GH' => '288','GD' => '308','GL' => '304', 'GI' => '292','GP' => '312','GU' => '316','GT' => '320','GG' => '831','GN' => '324', 'GW' => '624','GY' => '328','HT' => '332','HM' => '334','VA' => '336','HN' => '340', 'IS' => '352','IN' => '356','ID' => '360','IR' => '364','IQ' => '368','IM' => '833', 'JM' => '388','JE' => '832','JO' => '400','KZ' => '398','KE' => '404','KI' => '296', 'KP' => '408','KW' => '414','KG' => '417','LA' => '418','LV' => '428','LB' => '422','LS' => '426','LR' => '430','LY' => '434','LI' => '438','LT' => '440','MO' => '446','MK' => '807','MG' => '450','MW' => '454','MY' => '458','MV' => '462','ML' => '466','MT' => '470','MH' => '584','MQ' => '474','MR' => '478','HU' => '348','YT' => '175','MX' => '484','FM' => '583','MD' => '498','MC' => '492','MN' => '496','ME' => '499','MS' => '500','MA' => '504','MZ' => '508','NA' => '516','NR' => '520','NP' => '524','BQ' => '535','NC' => '540','NI' => '558','NE' => '562','NU' => '570','NF' => '574','MP' => '580','OM' => '512','PK' => '586','PW' => '585','PS' => '275','PA' => '591','PG' => '598','PY' => '600','PE' => '604','PH' => '608','PN' => '612','PR' => '630','QA' => '634','RE' => '638','RU' => '643','RW' => '646','BL' => '652','KN' => '659', 'LC' => '662','MF' => '663','PM' => '666','VC' => '670','WS' => '882','SM' => '674',	'ST' => '678','SA' => '682','SN' => '686','RS' => '688','SC' => '690','SL' => '694','SI' => '705','SB' => '090','SO' => '706','GS' => '239','LK' => '144','SD' => '729','SR' => '740','SJ' => '744','SZ' => '748','SY' => '760','TW' => '158','TJ' => '762','TZ' => '834','TH' => '764','TK' => '772','TO' => '776','TT' => '780','TN' => '788','TR' => '792','TM' => '795','TC' => '796','TV' => '798','UG' => '800','UA' => '804','AE' => '784','UY' => '858','UZ' => '860','VU' => '548','VE' => '862','VN' => '704','VG' => '092','VI' => '850','WF' => '876','EH' => '732','YE' => '887','ZM' => '894','ZW' => '716','AL' => '008','AF' => '004','AQ' => '010','BA' => '070','BV' => '074','IO' => '086','BG' => '100','KY' => '136','CX' => '162','CC' => '166','CK' => '184','GF' => '254','PF' => '258','TF' => '260','AX' => '248','CW' => '531','SH' => '654','SX' => '534','SS' => '728','UM' => '581'		
+          );
 
   /**
    * Constructor
@@ -100,9 +103,12 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 	
 	$allowed_currencies = array('USD','EUR','CAD','GBP');
 	$package_path = explode('CRM',dirname(__FILE__));
-	
-		  
-	  if(!file_exists($package_path[0].DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml')){
+	/*
+	if (!extension_loaded('SoapClient')) {
+	return self::errorExit(9003, 'It appears that "SoapClient" is not installed in your system. Please contact the site administrator.');
+	}
+	*/
+	if(!file_exists($package_path[0].DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml')){
 	return self::errorExit(9003, 'It appears that there is no countries XML file. If you continue to have problems please contact the site administrator.');
 	}
 	
@@ -288,6 +294,15 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 		return substr( $str, 0, 500 );
 	}
 	
+	function search_country( $country )
+	{
+		foreach ($this->country_code as $cname => $code)
+		{
+			if ($cname == $country)
+				return $code;
+		}
+	}
+	
   function buildXML( $params, $xmlpath )
   {
 	
@@ -313,7 +328,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			 $applicationname=$dom->createElement('Name','CnP_CiviCRM_WordPress'); //CnP_CiviCRM_WordPress#CnP_CiviCRM_Joomla#CnP_CiviCRM_Drupal
 			 $applicationid=$application->appendChild($applicationname);
 			
-			 $applicationversion=$dom->createElement('Version','3.002.001.000.20141008');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date(yyyymmdd)
+			 $applicationversion=$dom->createElement('Version','3.002.002.000.20141217');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date(yyyymmdd)
 			 $applicationversion=$application->appendChild($applicationversion);
     
     		 $request = $dom->createElement('Request', '');
@@ -470,14 +485,27 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			 $billing_zip=$billingaddress->appendChild($billing_zip);
 			 //echo $xmlpath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml';
 			 //die();
-			 $countries = simplexml_load_file( $xmlpath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml' );
-			 foreach( $countries as $country ){
-				if( $country->attributes()->Abbrev == $params['country'] ){
-				$billing_country_id = $country->attributes()->Code;
-				} 
+			 $billing_country_id = '';
+			 if(ini_get('allow_url_fopen')) //To check if fopen is "ON"
+			 {
+				 $countries = simplexml_load_file( $xmlpath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml' );
+				 foreach( $countries as $country ){
+					if( $country->attributes()->Abbrev == $params['country'] ){
+					$billing_country_id = $country->attributes()->Code;
+					} 
+				 }
 			 }
-			 $billing_country=$dom->createElement('BillingCountryCode',str_pad($billing_country_id, 3, "0", STR_PAD_LEFT));
-			 $billing_country=$billingaddress->appendChild($billing_country);
+			 
+			 if($billing_country_id) {
+				 $billing_country=$dom->createElement('BillingCountryCode',str_pad($billing_country_id, 3, "0", STR_PAD_LEFT));
+				 $billing_country=$billingaddress->appendChild($billing_country);
+			 } else {
+				$billing_country_id = $this->search_country($params['country']);
+				if($billing_country_id) {
+				$billing_country=$dom->createElement('BillingCountryCode',str_pad($billing_country_id, 3, "0", STR_PAD_LEFT));
+				$billing_country=$billingaddress->appendChild($billing_country);
+				}
+			 }
 			 
 			 
 			 $customfieldlist = $dom->createElement('CustomFieldList','');
@@ -538,29 +566,59 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 				 $fieldvalue5 = $customfield5->appendChild($fieldvalue5);
 			 }
 			 
-			 if( isset( $params['honor_type_id'] ) && $params['honor_type_id'] != '' )
-			 {
-				 $query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'honor_type' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_type_id']."'  ORDER BY v.weight";				 
-				 $honor_type = CRM_Core_Dao::singleValueQuery( $query );
-				
-				 $customfield6 = $dom->createElement('CustomField','');
-				 $customfield6 = $customfieldlist->appendChild($customfield6);
-				 
-				 $fieldname6 = $dom->createElement('FieldName',$this->safeString($honor_type,200));
-				 $fieldname6 = $customfield6->appendChild($fieldname6);
-				
-				$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'individual_prefix' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_prefix_id']."'  ORDER BY v.weight";				 
-				$honor_prefix = CRM_Core_Dao::singleValueQuery( $query );
-				
-				 $honor_name = $honor_prefix . ' ' . $params['honor_first_name'];
-				 if(isset($params['honor_last_name']) && $params['honor_last_name'] != '')
-				 $honor_name .= ' ' . $params['honor_last_name'];
-				 if(isset($params['honor_email']) && $params['honor_email'] != '')
-				 $honor_name .= ' (' . $params['honor_email'] . ')';
-				 $fieldvalue6 = $dom->createElement('FieldValue',$this->safeString($honor_name, 500));
-				 $fieldvalue6 = $customfield6->appendChild($fieldvalue6);
-			 }
 			 
+			 
+			 $query = "SELECT version FROM   civicrm_domain";
+			 $dbVersion = CRM_Core_DAO::singleValueQuery($query);
+			
+			if($dbVersion < '4.5.0')
+			 {
+				 if( isset( $params['honor_type_id'] ) && $params['honor_type_id'] != '' )
+				 {
+					 $query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'honor_type' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_type_id']."'  ORDER BY v.weight";				 
+					 $honor_type = CRM_Core_Dao::singleValueQuery( $query );
+					
+					 $customfield6 = $dom->createElement('CustomField','');
+					 $customfield6 = $customfieldlist->appendChild($customfield6);
+					 
+					 $fieldname6 = $dom->createElement('FieldName',$this->safeString($honor_type,200));
+					 $fieldname6 = $customfield6->appendChild($fieldname6);
+					
+					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'individual_prefix' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_prefix_id']."'  ORDER BY v.weight";				 
+					$honor_prefix = CRM_Core_Dao::singleValueQuery( $query );
+					
+					 $honor_name = $honor_prefix . ' ' . $params['honor_first_name'];
+					 if(isset($params['honor_last_name']) && $params['honor_last_name'] != '')
+					 $honor_name .= ' ' . $params['honor_last_name'];
+					 if(isset($params['honor_email']) && $params['honor_email'] != '')
+					 $honor_name .= ' (' . $params['honor_email'] . ')';
+					 $fieldvalue6 = $dom->createElement('FieldValue',$this->safeString($honor_name, 500));
+					 $fieldvalue6 = $customfield6->appendChild($fieldvalue6);
+				 }
+			 } else {
+				if( isset( $params['honor'] ) && $params['soft_credit_type_id'] != '' ) {
+					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'soft_credit_type' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['soft_credit_type_id']."'  ORDER BY v.weight";				 
+					$honor_type = CRM_Core_Dao::singleValueQuery( $query );
+					
+					 $customfield6 = $dom->createElement('CustomField','');
+					 $customfield6 = $customfieldlist->appendChild($customfield6);
+					 
+					 $fieldname6 = $dom->createElement('FieldName',$this->safeString($honor_type,200));
+					 $fieldname6 = $customfield6->appendChild($fieldname6);
+					
+					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'individual_prefix' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor']['prefix_id']."'  ORDER BY v.weight";				 
+					$honor_prefix = CRM_Core_Dao::singleValueQuery( $query );
+					
+					 $honor_name = $honor_prefix . ' ' . $params['honor']['first_name'];
+					 if(isset($params['honor']['last_name']) && $params['honor']['last_name'] != '')
+					 $honor_name .= ' ' . $params['honor']['last_name'];
+					 if(isset($params['honor']['email-1']) && $params['honor']['email-1'] != '')
+					 $honor_name .= ' (' . $params['honor']['email-1'] . ')';
+					 $fieldvalue6 = $dom->createElement('FieldValue',$this->safeString($honor_name, 500));
+					 $fieldvalue6 = $customfield6->appendChild($fieldvalue6);
+				}
+			 }
+			
 			 			 
 			 $paymentmethod=$dom->createElement('PaymentMethod','');
 			 $paymentmethod=$cardholder->appendChild($paymentmethod);
@@ -876,7 +934,7 @@ class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
 			 $total_amount=$trans_totals->appendChild($total_amount);
 			 
 	         $strParam =$dom->saveXML();
-			// die();
+			
 			 return $strParam;
   }
 
