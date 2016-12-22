@@ -1,967 +1,263 @@
 <?php
+
+require_once 'clickandpledge.civix.php';
+
 /**
+ * Implementation of hook_civicrm_config().
+ */
+function clickandpledge_civicrm_config(&$config) {
+  _clickandpledge_civix_civicrm_config($config);
+  $extRoot = dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'packages' . DIRECTORY_SEPARATOR;
+  $include_path = $extRoot . PATH_SEPARATOR . get_include_path( );
+  set_include_path( $include_path );
+}
+
+/**
+ * Implementation of hook_civicrm_xmlMenu().
  *
- * @package CRM
- * @author Kamran Razvan <Kamran@clickandpledge.com>
- * $Id: clickandpledge.php
- * Written & Contributed by http://clickandpledge.com
+ * @param $files array(string)
  */
- 
-/*
- * Payment Processor class for Click & Pledge
+function clickandpledge_civicrm_xmlMenu(&$files) {
+  _clickandpledge_civix_civicrm_xmlMenu($files);
+}
+
+/**
+ * Implementation of hook_civicrm_install().
  */
-class com_clickandpledge_payment_clickandpledge extends CRM_Core_Payment {
+function clickandpledge_civicrm_install() {
+  // Create required tables for clickandpledge.
+  require_once "CRM/Core/DAO.php";
+  CRM_Core_DAO::executeQuery("
+  CREATE TABLE IF NOT EXISTS `civicrm_clickandpledge_customers` (
+    `email` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+    `id` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+    `is_live` tinyint(4) NOT NULL COMMENT 'Whether this is a live or test transaction',
+    `processor_id` int(10) DEFAULT NULL COMMENT 'ID from civicrm_payment_processor',
+     UNIQUE KEY `id` (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  ");
 
-  /**
-   * We only need one instance of this object. So we use the singleton
-   * pattern and cache the instance in this variable
-   *
-   * @var object
-   * @static
-   */
-  static private $_singleton = null;
+  CRM_Core_DAO::executeQuery("
+  CREATE TABLE IF NOT EXISTS `civicrm_clickandpledge_plans` (
+    `plan_id` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+    `is_live` tinyint(4) NOT NULL COMMENT 'Whether this is a live or test transaction',
+    `processor_id` int(10) DEFAULT NULL COMMENT 'ID from civicrm_payment_processor',
+     UNIQUE KEY `plan_id` (`plan_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  ");
 
-  /**
-   * mode of operation: live or test
-   *
-   * @var object
-   * @static
-   */
-  static protected $_mode = null;
-  
-  var $responsecodes = array(2055=>'AccountGuid is not valid',2056=>'AccountId is not valid',2057=>'Username is not valid',2058=>'Password is not valid',2059=>'Invalid recurring parameters',2060=>'Account is disabled',2101=>'Cardholder information is null',2102=>'Cardholder information is null',2103=>'Cardholder information is null',2104=>'Invalid billing country',2105=>'Credit Card number is not valid',2106=>'Cvv2 is blank',2107=>'Cvv2 length error',2108=>'Invalid currency code',2109=>'CreditCard object is null',2110=>'Invalid card type ',2111=>'Card type not currently accepted',2112=>'Card type not currently accepted',2210=>'Order item list is empty',2212=>'CurrentTotals is null',2213=>'CurrentTotals is invalid',2214=>'TicketList lenght is not equal to quantity',2215=>'NameBadge lenght is not equal to quantity',2216=>'Invalid textonticketbody',2217=>'Invalid textonticketsidebar',2218=>'Invalid NameBadgeFooter',2304=>'Shipping CountryCode is invalid',2401=>'IP address is null',2402=>'Invalid operation',2501=>'WID is invalid',2502=>'Production transaction is not allowed. Contact support for activation.',2601=>'Invalid character in a Base-64 string',2701=>'ReferenceTransaction Information Cannot be NULL',2702=>'Invalid Refrence Transaction Information',2703=>'Expired credit card',2805=>'eCheck Account number is invalid',2807=>'Invalid payment method',2809=>'Invalid payment method',2811=>'eCheck payment type is currently not accepted',2812=>'Invalid check number',5001=>'Declined (general)',5002=>'Declined (lost or stolen card)',5003=>'Declined (fraud)',5004=>'Declined (Card expired)',5005=>'Declined (Cvv2 is not valid)',5006=>'Declined (Insufficient fund)',5007=>'Declined (Invalid credit card number)');
-  
-  var $country_code = array( 'DE' => '276','AT' => '040','BE' => '056','CA' => '124','CN' => '156','ES' => '724',	'FI' => '246','FR' => '250','GR' => '300', 'IT' => '380','JP' => '392','LU' => '442', 'NL' => '528','PL' => '616','PT' => '620','CZ' => '203','GB' => '826','SE' => '752', 'CH' => '756','DK' => '208','US' => '840','HK' => '344','NO' => '578','AU' => '036',	'SG' => '702','IE' => '372','NZ' => '554','KR' => '410','IL' => '376','ZA' => '710','NG' => '566','CI' => '384','TG' => '768','BO' => '068','MU' => '480','RO' => '642',	'SK' => '703','DZ' => '012','AS' => '016','AD' => '020','AO' => '024','AI' => '660',	'AG' => '028','AR' => '032','AM' => '051','AW' => '533','AZ' => '031','BS' => '044',	'BH' => '048','BD' => '050','BB' => '052','BY' => '112','BZ' => '084','BJ' => '204',	'BT' => '060','56' => '064','BW' => '072','BR' => '076','BN' => '096','BF' => '854',	'MM' => '104','BI' => '108','KH' => '116','CM' => '120','CV' => '132','CF' => '140',	'TD' => '148','CL' => '152','CO' => '170','KM' => '174','CD' => '180','CG' => '178',	'CR' => '188','HR' => '191','CU' => '192','CY' => '196','DJ' => '262','DM' => '212',	'DO' => '214','TL' => '626','EC' => '218','EG' => '818','SV' => '222','GQ' => '226',	'ER' => '232','EE' => '233','ET' => '231','FK' => '238','FO' => '234','FJ' => '242', 'GA' => '266','GM' => '270','GE' => '268','GH' => '288','GD' => '308','GL' => '304', 'GI' => '292','GP' => '312','GU' => '316','GT' => '320','GG' => '831','GN' => '324', 'GW' => '624','GY' => '328','HT' => '332','HM' => '334','VA' => '336','HN' => '340', 'IS' => '352','IN' => '356','ID' => '360','IR' => '364','IQ' => '368','IM' => '833', 'JM' => '388','JE' => '832','JO' => '400','KZ' => '398','KE' => '404','KI' => '296', 'KP' => '408','KW' => '414','KG' => '417','LA' => '418','LV' => '428','LB' => '422','LS' => '426','LR' => '430','LY' => '434','LI' => '438','LT' => '440','MO' => '446','MK' => '807','MG' => '450','MW' => '454','MY' => '458','MV' => '462','ML' => '466','MT' => '470','MH' => '584','MQ' => '474','MR' => '478','HU' => '348','YT' => '175','MX' => '484','FM' => '583','MD' => '498','MC' => '492','MN' => '496','ME' => '499','MS' => '500','MA' => '504','MZ' => '508','NA' => '516','NR' => '520','NP' => '524','BQ' => '535','NC' => '540','NI' => '558','NE' => '562','NU' => '570','NF' => '574','MP' => '580','OM' => '512','PK' => '586','PW' => '585','PS' => '275','PA' => '591','PG' => '598','PY' => '600','PE' => '604','PH' => '608','PN' => '612','PR' => '630','QA' => '634','RE' => '638','RU' => '643','RW' => '646','BL' => '652','KN' => '659', 'LC' => '662','MF' => '663','PM' => '666','VC' => '670','WS' => '882','SM' => '674',	'ST' => '678','SA' => '682','SN' => '686','RS' => '688','SC' => '690','SL' => '694','SI' => '705','SB' => '090','SO' => '706','GS' => '239','LK' => '144','SD' => '729','SR' => '740','SJ' => '744','SZ' => '748','SY' => '760','TW' => '158','TJ' => '762','TZ' => '834','TH' => '764','TK' => '772','TO' => '776','TT' => '780','TN' => '788','TR' => '792','TM' => '795','TC' => '796','TV' => '798','UG' => '800','UA' => '804','AE' => '784','UY' => '858','UZ' => '860','VU' => '548','VE' => '862','VN' => '704','VG' => '092','VI' => '850','WF' => '876','EH' => '732','YE' => '887','ZM' => '894','ZW' => '716','AL' => '008','AF' => '004','AQ' => '010','BA' => '070','BV' => '074','IO' => '086','BG' => '100','KY' => '136','CX' => '162','CC' => '166','CK' => '184','GF' => '254','PF' => '258','TF' => '260','AX' => '248','CW' => '531','SH' => '654','SX' => '534','SS' => '728','UM' => '581'		
-          );
+  CRM_Core_DAO::executeQuery("
+  CREATE TABLE IF NOT EXISTS `civicrm_clickandpledge_subscriptions` (
+    `customer_id` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+    `invoice_id` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+    `end_time` int(11) NOT NULL DEFAULT '0',
+    `is_live` tinyint(4) NOT NULL COMMENT 'Whether this is a live or test transaction',
+    `processor_id` int(10) DEFAULT NULL COMMENT 'ID from civicrm_payment_processor',
+    KEY `end_time` (`end_time`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  ");
 
-  /**
-   * Constructor
-   *
-   * @param string $mode the mode of operation: live or test
-   *
-   * @return void
-   */
-  function __construct($mode, &$paymentProcessor) {
-    $this->_mode             = $mode;
-    $this->_paymentProcessor = $paymentProcessor;
-    $this->_processorName    = ts('ClickandPledge');
+  return _clickandpledge_civix_civicrm_install();
+}
+
+/**
+ * Implementation of hook_civicrm_uninstall().
+ */
+function clickandpledge_civicrm_uninstall() {
+  // Remove clickandpledge tables on uninstall.
+  require_once "CRM/Core/DAO.php";
+  CRM_Core_DAO::executeQuery("DROP TABLE civicrm_clickandpledge_customers");
+  CRM_Core_DAO::executeQuery("DROP TABLE civicrm_clickandpledge_plans");
+  CRM_Core_DAO::executeQuery("DROP TABLE civicrm_clickandpledge_subscriptions");
+
+  return _clickandpledge_civix_civicrm_uninstall();
+}
+
+/**
+ * Implementation of hook_civicrm_enable().
+ */
+function clickandpledge_civicrm_enable() {
+   return _clickandpledge_civix_civicrm_enable();
+}
+
+/**
+ * Implementation of hook_civicrm_disable().
+ */
+function clickandpledge_civicrm_disable() {
+  return _clickandpledge_civix_civicrm_disable();
+}
+
+/**
+ * Implementation of hook_civicrm_upgrade
+ *
+ * @param $op string, the type of operation being performed; 'check' or 'enqueue'
+ * @param $queue CRM_Queue_Queue, (for 'enqueue') the modifiable list of pending up upgrade tasks
+ *
+ * @return mixed  based on op. for 'check', returns array(boolean) (TRUE if upgrades are pending)
+ *                for 'enqueue', returns void
+ */
+function clickandpledge_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
+  return _clickandpledge_civix_civicrm_upgrade($op, $queue);
+}
+
+/**
+ * Implementation of hook_civicrm_validateForm().
+ *
+ * Prevent server validation of cc fields
+ *
+ * @param $formName - the name of the form
+ * @param $fields - Array of name value pairs for all 'POST'ed form values
+ * @param $files - Array of file properties as sent by PHP POST protocol
+ * @param $form - reference to the form object
+ * @param $errors - Reference to the errors array.
+ */
+function clickandpledge_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
+  if (empty($form->_paymentProcessor['payment_processor_type'])) {
+    return;
+  }
+  // If clickandpledge is active here.
+  if (isset($form->_elementIndex['clickandpledge_token'])) {
+    if ($form->elementExists('credit_card_number')) {
+      $cc_field = $form->getElement('credit_card_number');
+      $form->removeElement('credit_card_number', true);
+      $form->addElement($cc_field);
+    }
+    if ($form->elementExists('cvv2')) {
+      $cvv2_field = $form->getElement('cvv2');
+      $form->removeElement('cvv2', true);
+      $form->addElement($cvv2_field);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_civicrm_buildForm().
+ *
+ * @param $formName - the name of the form
+ * @param $form - reference to the form object
+ */
+function clickandpledge_civicrm_buildForm($formName, &$form) {
+  $clickandpledge_key = clickandpledge_get_key($form);
+  // If this is not a form clickandpledge is involved in, do nothing.
+  if (empty($clickandpledge_key)) {
+    return;
+  }
+  $params = $form->get('params');
+  // Contrib forms store this in $params, Event forms in $params[0].
+  if (!empty($params[0]['clickandpledge_token'])) {
+    $params = $params[0];
+  }
+  $clickandpledge_token = (empty($params['clickandpledge_token']) ? NULL : $params['clickandpledge_token']);
+
+  // Add some hidden fields for clickandpledge.
+  if (!$form->elementExists('clickandpledge_token')) {
+    $form->setAttribute('class', $form->getAttribute('class') . ' clickandpledge-payment-form');
+    $form->addElement('hidden', 'clickandpledge_token', $clickandpledge_token, array('id' => 'clickandpledge-token'));
+  }
+  clickandpledge_add_clickandpledge_js($clickandpledge_key, $form);
+
+  // Add email field as it would usually be found on donation forms.
+  if (!isset($form->_elementIndex['email']) && !empty($form->userEmail)) {
+    $form->addElement('hidden', 'email', $form->userEmail, array('id' => 'user-email'));
+  }
+}
+
+/**
+ * Return the clickandpledge api public key (aka password)
+ *
+ * If this form could conceiveably now or at any time in the future
+ * contain a clickandpledge payment processor, return the api public key for
+ * that processor.
+ */
+function clickandpledge_get_key($form) {
+  if (empty($form->_paymentProcessor)) {
+    return;
+  }
+  // Only return first value if clickandpledge is the only/default.
+  if ($form->_paymentProcessor['payment_processor_type'] == 'Click & Pledge') {
+    if (isset($form->_paymentProcessor['password'])) {
+      return $form->_paymentProcessor['password'];
+    }
   }
 
-  /**
-   * Singleton function used to manage this object
-   *
-   * @param string $mode the mode of operation: live or test
-   *
-   * @return object
-   * @static
-   *
-   */
-  static function &singleton($mode, &$paymentProcessor) {
-      $processorName = $paymentProcessor['name'];
-      if (self::$_singleton[$processorName] === NULL ) {
-          self::$_singleton[$processorName] = new self($mode, $paymentProcessor);
+  // Otherwise we need to look through all active payprocs and find clickandpledge.
+  $is_test = 0;
+  if (isset($form->_mode)) {
+    $is_test = $form->_mode == 'live' ? 0 : 1;
+  }
+
+  // The _paymentProcessors array seems to be the most reliable way to find
+  // if the form is using clickandpledge.
+  if (!empty($form->_paymentProcessors)) {
+    foreach ($form->_paymentProcessors as $pp) {
+      if ($pp['payment_processor_type'] == 'Click & Pledge') {
+        if (!empty($pp['password'])) {
+          return $pp['password'];
+        }
+        // We have a match.
+        return clickandpledge_get_key_for_name($pp['name'], $is_test);
       }
-      return self::$_singleton[$processorName];
-  }
-
-  /**
-   * This function checks to see if we have the right config values
-   *
-   * @return string the error message if any
-   * @public
-   */
-  function checkConfig() {
-    $config = CRM_Core_Config::singleton();
-    $error = array();
-
-    if (empty($this->_paymentProcessor['user_name'])) {
-      $error[] = ts('The "Account ID" is not set in the ClickandPledge Payment Processor settings.');
-    }
-
-    if (empty($this->_paymentProcessor['password'])) {
-      $error[] = ts('The "API Account GUID" is not set in the ClickandPledge Payment Processor settings.');
-    }
-
-    if (!empty($error)) {
-      return implode('<p>', $error);
-    }
-    else {
-      return NULL;
     }
   }
+  // Return NULL if this is not a form with clickandpledge involved.
+  return NULL;
+}
 
-  /**
-   
-   * @param  array $params assoc array of input parameters for this transaction
-   *
-   * @return array the result in a nice formatted array (or an error object)
-   * @public
-   */
-  function doDirectPayment(&$params) {
-	$cookedParams = $params; //Transalated params
-    CRM_Utils_Hook::alterPaymentProcessorParams( $this, $params, $cookedParams );
-	
-	$allowed_currencies = array('USD','EUR','CAD','GBP');
-	$package_path = explode('CRM',dirname(__FILE__));
-	/*
-	if (!extension_loaded('SoapClient')) {
-	return self::errorExit(9003, 'It appears that "SoapClient" is not installed in your system. Please contact the site administrator.');
-	}
-	*/
-	if(!file_exists($package_path[0].DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml')){
-	return self::errorExit(9003, 'It appears that there is no countries XML file. If you continue to have problems please contact the site administrator.');
-	}
-	
-	if(!in_array($params['currencyID'],$allowed_currencies)){
-	return self::errorExit(9099, 'It appears that selected currency is not supported with this payment processor. If you continue to have problems please contact the site administrator.');
-	}
-	
-	if (isset($params['is_recurr']) && $params['is_recur'] == TRUE) {
-	
-			  
-		if( isset( $params['frequency_interval'] ) && $params['frequency_interval'] > 1 )
-	  {
-		return self::errorExit(9099, "Error: [We are not supporting recurring intervals or recurring interval should be one. Please contact administrator]");	
-	  }
-	 	 
-	if( ( isset( $params['installments'] ) && $params['installments'] <= 1 && $params['installments'] != '' ) || ( isset( $params['installments'] ) && $params['installments'] >= 1000 && $params['installments'] != ''  ) )
-	  {
-		return self::errorExit(9099, "Error: [Number of installments should be between 2 to 999. Please check the installments]");	
-	  }
-	  
-	  if(!in_array( ucfirst( $params['frequency_unit'] ), array('Week','2 weeks','2 Weeks','Month','2 Months','Quarter','6 Months','Year') ))
-	  {
-		return self::errorExit(9099, "Error: [Periodicity should be 'Week','2 Weeks','Month','2 Months','Quarter','6 Months','Year'. Please contact administrator.]");	
-	  }
-	  
-	 // $strParam = $this->doRecurPayment( $params, $package_path[0]);
-	  }
-	  
-	  if(   ( isset( $params['billing_first_name'] ) && strlen( $params['billing_first_name'] ) > 40 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing First Name should be less than 40 chanracters]");	
-	  }
-	  
-	  if (!preg_match("/^([a-zA-Z0-9\.\,\#\&\-\ \']{2,40})+$/", $params['billing_first_name'])) 
-	  {
-		return self::errorExit(9099, "Error: [In valid Billing First Name.]");	
-	  }
-	  
-	  if(   ( isset( $params['billing_middle_name'] ) && strlen( $params['billing_middle_name'] ) > 1 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing Middle Name should be 1 chanracter only]");	
-	  }
-	  
-	  if(   ( isset( $params['billing_last_name'] ) && strlen( $params['billing_last_name'] ) > 50 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing Last Name should be less than 50 characters]");	
-	  }
-	  if (!preg_match("/^([a-zA-Z0-9\.\,\#\&\-\ \']{0,50})+$/", $params['billing_last_name'])) 
-	  {
-		return self::errorExit(9099, "Error: [In valid Billing Last Name.]");	
-	  }
-	  
-	  if(   ( isset( $params['billing_city-5'] ) && strlen( $params['billing_city-5'] ) > 40 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing City Name should be less than 40 chanracters]");	
-	  }
-	  
-	  if(   ( isset( $params['billing_city-5'] ) && strlen( $params['billing_city-5'] ) > 40 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing City Name should be less than 40 chanracters]");	
-	  }
-	  
-	  if(   ( isset( $params['billing_postal_code-5'] ) && strlen( $params['billing_postal_code-5'] ) > 20 ) )
-	  {
-		return self::errorExit(9099, "Error: [Billing Postal should be less than 20 chanracters]");	
-	  }
-	  
-	$item_parts = explode(':',$params['description']);
-	if( trim( $item_parts[0] ) == 'Online Event Registration' )
-	{
-		
-    //for CiviCRM 4.3
-    $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
-		inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
-		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
-		$dao = CRM_Core_DAO::executeQuery($query);
-		$rows = 0;
-		if ($dao->fetch()) {
-			$rows = $dao->N;
-		}
-	
-		if( $rows > 1 )
-		{
-			return self::errorExit(9099, "Error: [Event Name should be unique. Please contact administrator.]");
-		}
-	}
-		
-	 $strParam =  $this->buildXML( $params, $package_path[0] );
-	
-	  $connect = array('soap_version' => SOAP_1_1, 'trace' => 1, 'exceptions' => 0);
-		 $client = new SoapClient('https://paas.cloud.clickandpledge.com/paymentservice.svc?wsdl', $connect);
-		 $soapParams = array('instruction'=>$strParam);
-		 
-		 $response = $client->Operation($soapParams);
-	
-		// NOTE: You will not necessarily get a string back, if the request failed for
-		//       any reason, the return value will be the boolean false.
-		if (($response === FALSE)) {
-		  return self::errorExit(9006, "Error: Connection to payment gateway failed - no data returned.");
-		}
-	
-		$ResultCode=$response->OperationResult->ResultCode;
-		//$transation_number=$response->OperationResult->TransactionNumber;
-		 $transation_number=$response->OperationResult->VaultGUID;
-		
-		if($ResultCode=='0')
-		{
-			$response_message=$response->OperationResult->ResultData;
-			//Success
-			$params['trxn_id'] = $transation_number;
-			$params['trxn_result_code'] = $response_message;
-			return $params;
-		 }
-		 else
-		{
-			if( in_array( $ResultCode, array( 2051,2052,2053 ) ) )
-			{
-				$AdditionalInfo = $response->OperationResult->AdditionalInfo;
-			}
-			else
-			{
-				if( isset( $this->responsecodes[$ResultCode] ) )
-				{
-					$AdditionalInfo = $this->responsecodes[$ResultCode];
-				}
-				else
-				{
-					$AdditionalInfo = 'Unknown error';
-				}
-			}
-				
-				$response_message = $ResultCode.':'.$AdditionalInfo;
-			   return self::errorExit(9099, "Error: [" . $response_message . "]");			     
-		}
-     	
-	
-	
-
-	
-   
-		 
+/**
+ * Given a payment processor name, return the pub key.
+ */
+function clickandpledge_get_key_for_name($name, $is_test) {
+  try {
+    $params = array('name' => $name, 'is_test' => $is_test);
+    $results = civicrm_api3('PaymentProcessor', 'get', $params);
+    if ($results['count'] == 1) {
+      $result = array_pop($results['values']);
+      return $result['password'];
+    }
   }
+  catch (CiviCRM_API3_Exception $e) {
+    return NULL;
+  }
+}
 
+/**
+ * Add publishable key and event bindings for clickandpledge.js.
+ */
+function clickandpledge_add_clickandpledge_js($clickandpledge_key, $form) {
+  $form->addElement('text', 'clickandpledge_pub_key', $clickandpledge_key, array('id' => 'clickandpledge-pub-key'));
+  CRM_Core_Resources::singleton()->addScriptFile('com.clickandpledge.payment.clickandpledge', 'js/civicrm_clickandpledge.js', 0);
+}
+
+/**
+ * Implementation of hook_civicrm_managed().
+ *
+ * Generate a list of entities to create/deactivate/delete when this module
+ * is installed, disabled, uninstalled.
+ */
  
- /**
-   * Submit a recurring payment using Click & Pledge's PHP API:
-   *
-   * @param  array $params assoc array of input parameters for this transaction
+function clickandpledge_civicrm_managed(&$entities) {
+  $entities[] = array(
+    'module' => 'com.clickandpledge.payment.clickandpledge',
+    'name' => 'Click & Pledge',
+    'entity' => 'PaymentProcessorType',
+    'params' => array(
+    'version' => 3,
+    'name' => 'Click & Pledge',
+    'title' => 'Click & Pledge',
+    'description' => 'clickandpledge Payment Processor',
+    'class_name' => 'Payment_ClickandPledge',
+    'billing_mode' => 'form',
+    'user_name_label' => 'Account ID',
+    'password_label' => 'API Account GUID',
+	'signature_label' => 'Connect Campaign URL Alias',
+    'url_site_default' => 'https://manual.clickandpledge.com/',
+    'url_site_test_default' => 'https://manual.clickandpledge.com/',
+	'url_recur_default' => 'https://manual.clickandpledge.com/',
+	'url_recur_test_default' => 'https://manual.clickandpledge.com/',
+    'is_recur' => 1,
+    'payment_type' => 1
+    ),
+  );
 
-   * @return array the result in a nice formatted array (or an error object)
-   * @public
-   */
-  function doRecurPayment( &$params, $package_path) {
-
-	return $strParam = $this->buildXML( $params, $package_path );
-
-		}
-  
-	
-  /**
-   * Checks to see if invoice_id already exists in db
-   *
-   * @param  int     $invoiceId   The ID to check
-   *
-   * @return bool                  True if ID exists, else false
-   */
-  function _checkDupe($invoiceId) {
-    require_once 'CRM/Contribute/DAO/Contribution.php';
-    $contribution = new CRM_Contribute_DAO_Contribution();
-    $contribution->invoice_id = $invoiceId;
-    return $contribution->find();
-  }
-  
-  function safeString( $str,  $length=1, $start=0 )
-	{
-		$str = preg_replace('/\x03/', '', $str); //Remove new line characters
-		return substr( htmlspecialchars( $str ), $start, $length );
-	}
-	
-	function safeStringReplace( $str )
-	{
-		$str = str_replace( '&', '&amp;', trim( $str ) );
-		return substr( $str, 0, 500 );
-	}
-	
-	function search_country( $country )
-	{
-		foreach ($this->country_code as $cname => $code)
-		{
-			if ($cname == $country)
-				return $code;
-		}
-	}
-	
-  function buildXML( $params, $xmlpath )
-  {
-	
-	$configValues = $this->_paymentProcessor;
-
-		$dom = new DOMDocument('1.0', 'UTF-8');
-             $root = $dom->createElement('CnPAPI', '');
-             $root->setAttribute("xmlns","urn:APISchema.xsd");
-             $root = $dom->appendChild($root);
-			  
-			 $version=$dom->createElement("Version","1.5");
-    		 $version=$root->appendChild($version);
-			 
-			 $engine = $dom->createElement('Engine', '');
-             $engine = $root->appendChild($engine);
-			 
-			 $application = $dom->createElement('Application','');
-			 $application = $engine->appendChild($application);
-    
-			 $applicationid=$dom->createElement('ID','CnP_CiviCRM_WordPress'); //
-			 $applicationid=$application->appendChild($applicationid);
-			
-			 $applicationname=$dom->createElement('Name','CnP_CiviCRM_WordPress'); //CnP_CiviCRM_WordPress#CnP_CiviCRM_Joomla#CnP_CiviCRM_Drupal
-			 $applicationid=$application->appendChild($applicationname);
-			
-			 $applicationversion=$dom->createElement('Version','3.002.002.000.20141217');  //2.000.000.000.20130103 Version-Minor change-Bug Fix-Internal Release Number -Release Date(yyyymmdd)
-			 $applicationversion=$application->appendChild($applicationversion);
-    
-    		 $request = $dom->createElement('Request', '');
-    		 $request = $engine->appendChild($request);
-    
-    		 $operation=$dom->createElement('Operation','');
-    		 $operation=$request->appendChild( $operation );
-			 
-			 $operationtype=$dom->createElement('OperationType','Transaction');
-    		 $operationtype=$operation->appendChild($operationtype);
-    
-    		 $ipaddress=$dom->createElement('IPAddress',$params['ip_address']);
-    		 $ipaddress=$operation->appendChild($ipaddress);
-    
-			 $authentication=$dom->createElement('Authentication','');
-    		 $authentication=$request->appendChild($authentication);
-			
-    		 $accounttype=$dom->createElement('AccountGuid',$configValues['password'] ); 
-    		 $accounttype=$authentication->appendChild($accounttype);
-    
-    		 $accountid=$dom->createElement('AccountID',$configValues['user_name'] );
-    		 $accountid=$authentication->appendChild($accountid);
-			 
-			 $order=$dom->createElement('Order','');
-    		 $order=$request->appendChild($order);
-			
-			if( $this->_mode == 'live' ){
-				$orderMode = 'Production';
-			}else{
-				$orderMode = 'Test';
-			}
-    		 $ordermode=$dom->createElement('OrderMode',$orderMode);
-    		 $ordermode=$order->appendChild($ordermode);
-			
-				//Check if it is Personal Campaign Page
-				if ( (isset( $params['contributionPageID'] ) && $params['contributionPageID'] != '') || (isset( $params['campaign_id'] ) && $params['campaign_id'] != '') || ( isset( $params['pcp_made_through_id'] ) && $params['pcp_made_through_id'] != '' ) )
-				{
-					//Check if it is any Campaign Pages attached to this contribution
-					if ( isset( $params['pcp_made_through_id'] ) && $params['pcp_made_through_id'] != '' )
-					{
-						$query = "SELECT *  FROM  civicrm_pcp  WHERE id = '" . $params['pcp_made_through_id'] . "'";
-						$dao = CRM_Core_DAO::executeQuery($query);
-						if ($dao->fetch()) {
-							$Campaign=$dom->createElement('Campaign',$this->safeString(trim($dao->title), 73).'-p-'.$params['pcp_made_through_id']);
-							$Campaign=$order->appendChild($Campaign);
-						}
-					}
-					elseif((isset( $params['contributionPageID'] ) && $params['contributionPageID'] != ''))
-					{
-						$query = "SELECT *  FROM  civicrm_contribution_page  WHERE  id = '" . $params['contributionPageID'] . "'";
-						$dao = CRM_Core_DAO::executeQuery($query);
-						if ($dao->fetch()) {
-							if( $dao->campaign_id != '' )
-							{
-								$query_campaign = "SELECT *  FROM  civicrm_campaign  WHERE  id = '" . $dao->campaign_id . "'";
-								$dao_campaign = CRM_Core_DAO::executeQuery($query_campaign);
-								if ($dao_campaign->fetch()) 
-								{
-									$Campaign=$dom->createElement('Campaign',$this->safeString(trim($dao_campaign->title), 73).'-a-'.$dao->campaign_id);
-									$Campaign=$order->appendChild($Campaign);
-								}
-							}
-						}
-						
-					}
-					elseif((isset( $params['campaign_id'] ) && $params['campaign_id'] != '') && (!isset( $params['contributionPageID'] )))
-					{
-					
-						$query_campaign = "SELECT *  FROM  civicrm_campaign  WHERE  id = '" . $params['campaign_id'] . "'";
-						$dao_campaign = CRM_Core_DAO::executeQuery($query_campaign);
-						if ($dao_campaign->fetch()) 
-						{
-							$Campaign=$dom->createElement('Campaign',$this->safeString(trim($dao_campaign->title), 73).'-a-'.$params['campaign_id']);
-							$Campaign=$order->appendChild($Campaign);
-						}
-							
-					}
-				}
-				
-    		 $cardholder=$dom->createElement('CardHolder','');
-    		 $cardholder=$order->appendChild($cardholder);
-			 
-			 $billinginfo=$dom->createElement('BillingInformation','');
-    		 $billinginfo=$cardholder->appendChild($billinginfo);
-
-			 $billfirst_name=$dom->createElement('BillingFirstName',$this->safeString($params['first_name'],50));
-			 $billfirst_name=$billinginfo->appendChild($billfirst_name);
-				//echo $this->safeString($params['first_name'],50);
-				//die();
-			 if( isset( $params['middle_name'] ) && $params['middle_name'] != '' )
-			 {
-			 $billmiddle_name=$dom->createElement('BillingMI',$this->safeString($params['middle_name'],1));
-			 $billmiddle_name=$billinginfo->appendChild($billmiddle_name);
-			 }
-			 
-			 $billlast_name=$dom->createElement('BillingLastName',$this->safeString($params['billing_last_name'],50));
-			 $billlast_name=$billinginfo->appendChild($billlast_name);
-		
-			if (isset($params['email']) && $params['email'] != '') {
-				$email = $params['email'];
-			}
-			elseif( array_key_exists('email-5',$params ))
-			 {
-			 	$email = $params['email-5'];
-			}
-			elseif( isset( $params['email-Primary'] ) && $params['email-Primary'] != '' )
-			{
-				$email = $params['email-Primary'];
-			}
-			else
-			{
-				$email = '';
-			}
-				
-			if( $email != '' )
-			{
-			 $bill_email=$dom->createElement('BillingEmail',$email);
-			 $bill_email=$billinginfo->appendChild($bill_email);
-			}
-			
-			$keys = array_keys( $params );
-			$phone_field = '';
-			
-			for( $i = 0; $i < count( $keys ); $i++ )
-			{
-				if( strpos( $keys[$i],'phone' )  !== false )
-				{
-					$phone_field = $keys[$i];
-					break;
-				}
-			}
-			if( $phone_field != '' )
-			{
-				if( $params[$phone_field] != '' )
-				{
-				$bill_phone=$dom->createElement('BillingPhone',$params[$phone_field]);
-				$bill_phone=$billinginfo->appendChild($bill_phone);
-				}
-			}
-			
-			 $billingaddress=$dom->createElement('BillingAddress','');
-			 $billingaddress=$cardholder->appendChild($billingaddress);
-		
-			 $billingaddress1=$dom->createElement('BillingAddress1',$this->safeString($params['street_address'],100));
-			 $billingaddress1=$billingaddress->appendChild($billingaddress1);
-			
-			 $billing_city=$dom->createElement('BillingCity',$this->safeString($params['city'],50));
-			 $billing_city=$billingaddress->appendChild($billing_city);
-			
-			 $billing_state=$dom->createElement('BillingStateProvince',$this->safeString($params['state_province'],50));
-			 $billing_state=$billingaddress->appendChild($billing_state);
-			
-			 $billing_zip=$dom->createElement('BillingPostalCode',$this->safeString( $params['postal_code'],20 ));
-			 $billing_zip=$billingaddress->appendChild($billing_zip);
-			 //echo $xmlpath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml';
-			 //die();
-			 $billing_country_id = '';
-			 if(ini_get('allow_url_fopen')) //To check if fopen is "ON"
-			 {
-				 $countries = simplexml_load_file( $xmlpath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.'ClickandPledge'.DIRECTORY_SEPARATOR.'Countries.xml' );
-				 foreach( $countries as $country ){
-					if( $country->attributes()->Abbrev == $params['country'] ){
-					$billing_country_id = $country->attributes()->Code;
-					} 
-				 }
-			 }
-			 
-			 if($billing_country_id) {
-				 $billing_country=$dom->createElement('BillingCountryCode',str_pad($billing_country_id, 3, "0", STR_PAD_LEFT));
-				 $billing_country=$billingaddress->appendChild($billing_country);
-			 } else {
-				$billing_country_id = $this->search_country($params['country']);
-				if($billing_country_id) {
-				$billing_country=$dom->createElement('BillingCountryCode',str_pad($billing_country_id, 3, "0", STR_PAD_LEFT));
-				$billing_country=$billingaddress->appendChild($billing_country);
-				}
-			 }
-			 
-			 
-			 $customfieldlist = $dom->createElement('CustomFieldList','');
-             $customfieldlist = $cardholder->appendChild($customfieldlist);
-	
-
-			 if(  isset( $params['participant_role_id'] ) && $params['participant_role_id'] != '' )
-			 {
-				 $query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'participant_role' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['participant_role_id']."'  ORDER BY v.weight";
-				 
-				 $participant_role = CRM_Core_Dao::singleValueQuery( $query );
-				 if( $participant_role != '' )
-				 {
-				 $customfield1 = $dom->createElement('CustomField','');
-				 $customfield1 = $customfieldlist->appendChild($customfield1);
-				
-				
-				 $fieldname1 = $dom->createElement('FieldName','Participant Role');
-				 $fieldname1 = $customfield1->appendChild($fieldname1);
-				 
-				 $fieldvalue1 = $dom->createElement('FieldValue',$this->safeString( $participant_role,50 ));
-				 $fieldvalue1 = $customfield1->appendChild($fieldvalue1);
-				 }
-			 }
-			 
-			 if(  isset( $params['contributionType_name'] ) && $params['contributionType_name'] != '' )
-			 {
-				 $customfield1 = $dom->createElement('CustomField','');
-				 $customfield1 = $customfieldlist->appendChild($customfield1);
-				
-				
-				 $fieldname1 = $dom->createElement('FieldName','Contribution Type');
-				 $fieldname1 = $customfield1->appendChild($fieldname1);
-				 
-				 $fieldvalue1 = $dom->createElement('FieldValue',$this->safeString( $params['contributionType_name'],50 ));
-				 $fieldvalue1 = $customfield1->appendChild($fieldvalue1);
-			 }
-			 
-
-			 $customfield4 = $dom->createElement('CustomField','');
-			 $customfield4 = $customfieldlist->appendChild($customfield4);
-			 
-			 $fieldname4 = $dom->createElement('FieldName','Description');
-			 $fieldname4 = $customfield4->appendChild($fieldname4);
-	
-			 $fieldvalue4 = $dom->createElement('FieldValue',$this->safeString ($params['description'], 50));
-			 $fieldvalue4 = $customfield4->appendChild($fieldvalue4);
-			 
-			 if( isset( $params['additional_participants'] ) && $params['additional_participants'] != '' )
-			 {
-				 $customfield5 = $dom->createElement('CustomField','');
-				 $customfield5 = $customfieldlist->appendChild($customfield5);
-				 
-				 $fieldname5 = $dom->createElement('FieldName','Total Participants');
-				 $fieldname5 = $customfield5->appendChild($fieldname5);
-		
-				 $fieldvalue5 = $dom->createElement('FieldValue',($params['additional_participants']+1));
-				 $fieldvalue5 = $customfield5->appendChild($fieldvalue5);
-			 }
-			 
-			 
-			 
-			 $query = "SELECT version FROM   civicrm_domain";
-			 $dbVersion = CRM_Core_DAO::singleValueQuery($query);
-			
-			if($dbVersion < '4.5.0')
-			 {
-				 if( isset( $params['honor_type_id'] ) && $params['honor_type_id'] != '' )
-				 {
-					 $query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'honor_type' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_type_id']."'  ORDER BY v.weight";				 
-					 $honor_type = CRM_Core_Dao::singleValueQuery( $query );
-					
-					 $customfield6 = $dom->createElement('CustomField','');
-					 $customfield6 = $customfieldlist->appendChild($customfield6);
-					 
-					 $fieldname6 = $dom->createElement('FieldName',$this->safeString($honor_type,200));
-					 $fieldname6 = $customfield6->appendChild($fieldname6);
-					
-					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'individual_prefix' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor_prefix_id']."'  ORDER BY v.weight";				 
-					$honor_prefix = CRM_Core_Dao::singleValueQuery( $query );
-					
-					 $honor_name = $honor_prefix . ' ' . $params['honor_first_name'];
-					 if(isset($params['honor_last_name']) && $params['honor_last_name'] != '')
-					 $honor_name .= ' ' . $params['honor_last_name'];
-					 if(isset($params['honor_email']) && $params['honor_email'] != '')
-					 $honor_name .= ' (' . $params['honor_email'] . ')';
-					 $fieldvalue6 = $dom->createElement('FieldValue',$this->safeString($honor_name, 500));
-					 $fieldvalue6 = $customfield6->appendChild($fieldvalue6);
-				 }
-			 } else {
-				if( isset( $params['honor'] ) && $params['soft_credit_type_id'] != '' ) {
-					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'soft_credit_type' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['soft_credit_type_id']."'  ORDER BY v.weight";				 
-					$honor_type = CRM_Core_Dao::singleValueQuery( $query );
-					
-					 $customfield6 = $dom->createElement('CustomField','');
-					 $customfield6 = $customfieldlist->appendChild($customfield6);
-					 
-					 $fieldname6 = $dom->createElement('FieldName',$this->safeString($honor_type,200));
-					 $fieldname6 = $customfield6->appendChild($fieldname6);
-					
-					$query = "SELECT v.label as label FROM civicrm_option_value v, civicrm_option_group g WHERE v.option_group_id = g.id AND g.name = 'individual_prefix' AND g.is_active = 1 AND v.is_active = 1 and v.value = '".$params['honor']['prefix_id']."'  ORDER BY v.weight";				 
-					$honor_prefix = CRM_Core_Dao::singleValueQuery( $query );
-					
-					 $honor_name = $honor_prefix . ' ' . $params['honor']['first_name'];
-					 if(isset($params['honor']['last_name']) && $params['honor']['last_name'] != '')
-					 $honor_name .= ' ' . $params['honor']['last_name'];
-					 if(isset($params['honor']['email-1']) && $params['honor']['email-1'] != '')
-					 $honor_name .= ' (' . $params['honor']['email-1'] . ')';
-					 $fieldvalue6 = $dom->createElement('FieldValue',$this->safeString($honor_name, 500));
-					 $fieldvalue6 = $customfield6->appendChild($fieldvalue6);
-				}
-			 }
-			
-			 			 
-			 $paymentmethod=$dom->createElement('PaymentMethod','');
-			 $paymentmethod=$cardholder->appendChild($paymentmethod);
-			
-			 $payment_type=$dom->createElement('PaymentType','CreditCard');
-			 $payment_type=$paymentmethod->appendChild($payment_type);
-			
-			 $creditcard=$dom->createElement('CreditCard','');
-			 $creditcard=$paymentmethod->appendChild($creditcard);
-			
-			if (isset($params['cardholder_name'])) {
-				$credit_card_name = $params['cardholder_name'];
-			}
-			else {
-				$credit_card_name = $params['first_name'] . " ";
-				if (isset($params['middle_name']) && !empty($params['middle_name'])) {
-					$credit_card_name .= $params['middle_name'] . " ";
-				}
-				$credit_card_name .= $params['last_name'];
-			}
-	
-			 $credit_name=$dom->createElement('NameOnCard',$this->safeString( $credit_card_name, 50));
-			 $credit_name=$creditcard->appendChild($credit_name);
-			
-			 $credit_number=$dom->createElement('CardNumber',$this->safeString( str_replace(' ', '', $params['credit_card_number']), 17));
-			 $credit_number=$creditcard->appendChild($credit_number);
-			
-			 $credit_cvv=$dom->createElement('Cvv2',$params['cvv2']);
-			 $credit_cvv=$creditcard->appendChild($credit_cvv);
-		
-			 $credit_expdate=$dom->createElement('ExpirationDate',str_pad($params['credit_card_exp_date']['M'],2,'0',STR_PAD_LEFT) ."/" .substr($params['credit_card_exp_date']['Y'],2,2));
-			 $credit_expdate=$creditcard->appendChild($credit_expdate);
-			
-			 $orderitemlist=$dom->createElement('OrderItemList','');
-             $orderitemlist=$order->appendChild($orderitemlist);			
-			
-			
-				$orderitem=$dom->createElement('OrderItem','');
-				$orderitem=$orderitemlist->appendChild($orderitem);
-				 
-				//$itemid=$dom->createElement('ItemID',$params['contact_id']);
-				$itemid=$dom->createElement('ItemID','1');
-				$itemid=$orderitem->appendChild($itemid);
-				
-				$item_parts = explode(':',$params['description']);
-				$itemname=$dom->createElement('ItemName',$this->safeString(trim($item_parts[1]), 50));
-				$itemname=$orderitem->appendChild($itemname);
-				
-				$quntity=$dom->createElement('Quantity','1');
-				$quntity=$orderitem->appendChild($quntity);
-				 
-				$unitprice=$dom->createElement('UnitPrice',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-				$unitprice=$orderitem->appendChild($unitprice);
-				
-				
-				$is_email_confirm = FALSE;
-				$confirm_email_text = '';
-				if( isset( $params['contributionTypeID'] ) && $params['contributionTypeID'] != '' )
-				{
-				
-        //for CiviCRM 4.3
-        $query = "SELECT *  FROM  civicrm_financial_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
-					$dao = CRM_Core_DAO::executeQuery($query);
-					if ($dao->fetch()) {
-						if( $dao->is_deductible == '1' )
-						{
-							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-							$unit_deduct=$orderitem->appendChild($unit_deduct);	
-						}
-						
-					}
-				}
-				elseif( isset( $params['contributionType_name'] ) && $params['contributionType_name'] != '' )
-				{
-					//for CiviCRM 4.3
-					$query = "SELECT *  FROM  civicrm_financial_type  WHERE  name = '" . $params['contributionType_name'] . "'";
-					$dao = CRM_Core_DAO::executeQuery($query);
-					if ($dao->fetch()) 
-					{
-						if( $dao->is_deductible == '1' )
-						{
-							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-							$unit_deduct=$orderitem->appendChild($unit_deduct);	
-						}
-						
-					}
-				}
-				elseif( trim( $item_parts[0] ) == 'Online Event Registration' )
-				{
-          //For CiviCRM 4.3
-           $query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
-		inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
-		WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";
-					$dao = CRM_Core_DAO::executeQuery($query);
-					
-					if ($dao->fetch()) {
-						if( $dao->is_email_confirm == 1 ){
-							$is_email_confirm = TRUE;
-							$confirm_email_text = $dao->confirm_email_text;
-						}
-						if( $dao->is_deductible == '1' )
-						{
-							$unit_deduct=$dom->createElement('UnitDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-							$unit_deduct=$orderitem->appendChild($unit_deduct);	
-						}
-						
-					}
-				}
-				
-				
-				if ( isset( $params['selectProduct'] ) && $params['selectProduct'] != 'no_thanks' && $params['selectProduct'] != '' )
-				{
-					$orderitem2=$dom->createElement('OrderItem','');
-					$orderitem2=$orderitemlist->appendChild($orderitem2);
-					$itemid=$dom->createElement('ItemID','2');
-					$itemid=$orderitem2->appendChild($itemid);
-					
-					$query = "SELECT *  FROM  civicrm_product  WHERE  id = '" . $params['selectProduct'] . "'";
-					$dao = CRM_Core_DAO::executeQuery($query);
-					if ($dao->fetch()) {
-						$itemname=$dom->createElement('ItemName',$this->safeString(trim($dao->name), 50));
-						$itemname=$orderitem2->appendChild($itemname);
-					}
-										
-					$quntity=$dom->createElement('Quantity','1');
-					$quntity=$orderitem2->appendChild($quntity);
-					 
-					$unitprice=$dom->createElement('UnitPrice',0);
-					$unitprice=$orderitem2->appendChild($unitprice);
-					
-					$sku=$dom->createElement('SKU',$dao->sku);
-					$sku=$orderitem2->appendChild($sku);
-				}
-						
-			 $receipt=$dom->createElement('Receipt','');
-			 $receipt=$order->appendChild($receipt);
-			
-			 $recipt_lang=$dom->createElement('Language','ENG');
-			 $recipt_lang=$receipt->appendChild($recipt_lang);
-			
-			 //$recipt_org=$dom->createElement('OrganizationInformation','ClickandPledge');
-			// $recipt_org=$receipt->appendChild($recipt_org);
-			
-			if ( isset( $params['contributionPageID'] ) && $params['contributionPageID'] != '' )
-			{
-				
-				$query = "SELECT *  FROM  civicrm_contribution_page  WHERE  id = '" . $params['contributionPageID'] . "'";
-					$dao = CRM_Core_DAO::executeQuery($query);
-					
-					if ($dao->fetch()) {
-					
-						if( $dao->receipt_text != '' && $dao->is_email_receipt == 1 )
-						{
-							$is_email_confirm = TRUE;
-							$recipt_thanks=$dom->createElement('ThankYouMessage',$this->safeStringReplace(trim($dao->receipt_text), 50));
-							$recipt_thanks=$receipt->appendChild($recipt_thanks);
-						}
-						
-					}
-					else
-					{
-						if( $confirm_email_text != '' ){
-							$recipt_thanks=$dom->createElement('ThankYouMessage',$this->safeStringReplace( $confirm_email_text ));
-							$recipt_thanks=$receipt->appendChild($recipt_thanks);
-						}
-					}
-					
-			}
-			else
-			{			
-				if( $confirm_email_text != '' ){
-					$recipt_thanks=$dom->createElement('ThankYouMessage',$this->safeStringReplace ($confirm_email_text ));
-					$recipt_thanks=$receipt->appendChild($recipt_thanks);
-				}
-			}
-			
-			 //$recipt_terms=$dom->createElement('TermsCondition','<![CDATA[All donations are tax deductible.]]>');
-			// $recipt_terms=$receipt->appendChild($recipt_terms);
-			
-			 $transation=$dom->createElement('Transaction','');
-	         $transation=$order->appendChild($transation);
-
-	         $trans_type=$dom->createElement('TransactionType','Payment');
-	         $trans_type=$transation->appendChild($trans_type);
-	        
-			 
-	
-			 $trans_desc=$dom->createElement('DynamicDescriptor','DynamicDescriptor');
-			 $trans_desc=$transation->appendChild($trans_desc); 
-			 
-			 
-			if ( isset( $params['is_recur'] ) && $params['is_recur'] == TRUE) 
-			{
-			
-				$trans_recurr=$dom->createElement('Recurring','');
-				$trans_recurr=$transation->appendChild($trans_recurr);
-
-							
-				if( $params['installments'] != '' )
-				{		
-					$total_installment=$dom->createElement('Installment',$params['installments']);
-					$total_installment=$trans_recurr->appendChild($total_installment);
-				}
-				else
-				{
-					$total_installment=$dom->createElement('Installment','999');
-					$total_installment=$trans_recurr->appendChild($total_installment);
-				}
-				
-				
-				$total_periodicity=$dom->createElement('Periodicity',ucfirst($params['frequency_unit']));
-				$total_periodicity=$trans_recurr->appendChild($total_periodicity);
-				
-				if( $params['installments'] != '' )
-				{		
-					$RecurringMethod=$dom->createElement('RecurringMethod','Subscription');
-					$RecurringMethod=$trans_recurr->appendChild($RecurringMethod);
-				}
-				else
-				{
-					$RecurringMethod=$dom->createElement('RecurringMethod','Subscription');
-					$RecurringMethod=$trans_recurr->appendChild($RecurringMethod);
-				}
-			}
-			
-			 $trans_totals=$dom->createElement('CurrentTotals','');
-			 $trans_totals=$transation->appendChild($trans_totals);
-			//No need of doing this as we sending unitdeductible above. But for clean coding we need to do this
-			if( isset( $params['contributionTypeID'] ) && $params['contributionTypeID'] != '' )
-			{
-			/*
-      $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
-      */
-      $query = "SELECT *  FROM  civicrm_financial_type  WHERE  id = '" . $params['contributionTypeID'] . "'";
-				$dao = CRM_Core_DAO::executeQuery($query);
-				if ($dao->fetch()) {
-					if( $dao->is_deductible == '1' )
-					{
-						$recipt_deduct=$dom->createElement('Deductible','1');
-						$recipt_deduct=$receipt->appendChild($recipt_deduct);
-						
-						$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-						$total_deduct=$trans_totals->appendChild($total_deduct);
-					}
-					
-				}
-			}
-			elseif( isset( $params['contributionType_name'] ) && $params['contributionType_name'] != '' )
-			{
-			/*
-      $query = "SELECT *  FROM  civicrm_contribution_type  WHERE  name = '" . $params['contributionType_name'] . "'";
-      */
-      $query = "SELECT *  FROM  civicrm_financial_type  WHERE  name = '" . $params['contributionType_name'] . "'";
-				$dao = CRM_Core_DAO::executeQuery($query);
-				if ($dao->fetch()) {
-					if( $dao->is_deductible == '1' )
-					{
-						$recipt_deduct=$dom->createElement('Deductible','1');
-						$recipt_deduct=$receipt->appendChild($recipt_deduct);
-						
-						$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-						$total_deduct=$trans_totals->appendChild($total_deduct);
-					}
-					
-				}
-			}
-			elseif( trim( $item_parts[0] ) == 'Online Event Registration' )
-			{
-								
-			$query = "SELECT civicrm_event.id as event_id,civicrm_event.title as title, civicrm_financial_type.is_deductible, civicrm_financial_type.name,civicrm_event.is_email_confirm,civicrm_event.confirm_email_text  FROM  civicrm_event  
-			inner join civicrm_financial_type on civicrm_event.financial_type_id=civicrm_financial_type.id
-			WHERE  civicrm_event.title = '" . trim( $item_parts[1] ) . "' and payment_processor = '".$params['payment_processor']."' and civicrm_event.registration_end_date >= '".date('Y-m-d')."'";    
-			$dao = CRM_Core_DAO::executeQuery($query);
-				
-			if ($dao->fetch()) {
-				if( $dao->is_email_confirm == 1 ){
-						$is_email_confirm = TRUE;
-					}
-				if( $dao->is_deductible == '1' )
-				{
-					$recipt_deduct=$dom->createElement('Deductible','1');
-					$recipt_deduct=$receipt->appendChild($recipt_deduct);
-					
-					$total_deduct=$dom->createElement('TotalDeductible',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-					$total_deduct=$trans_totals->appendChild($total_deduct);
-				}
-				
-			}
-			}
-			 
-			if( $is_email_confirm )
-			{
-				$recipt_email=$dom->createElement('EmailNotificationList','');
-				$recipt_email=$receipt->appendChild($recipt_email);
-
-				if (isset($params['email']) && $params['email'] != '') {
-				$email_notification = $params['email'];
-				}
-				elseif( array_key_exists('email-5',$params )){
-				$email_notification = $params['email-5'];
-				}
-				elseif( isset( $params['email-Primary'] ) && $params['email-Primary'] != '' ){
-				$email_notification = $params['email-Primary'];
-				}
-				else{
-				$email_notification = '';
-				}
-
-				$email_note=$dom->createElement('NotificationEmail',$email_notification);
-				$email_note=$recipt_email->appendChild($email_note);
-			} 
-			 $total_amount=$dom->createElement('Total',CRM_Utils_Rule::cleanMoney($params['amount'])*100);
-			 $total_amount=$trans_totals->appendChild($total_amount);
-			 
-	         $strParam =$dom->saveXML();
-			
-			 return $strParam;
-  }
-
-    /**************************************************
-   * Produces error message and returns from class
-   **************************************************/
-  function &errorExit($errorCode = NULL, $errorMessage = NULL) {
-    $e = CRM_Core_Error::singleton();
-
-    if ($errorCode) {
-      $e->push($errorCode, 0, NULL, $errorMessage);
-    }
-    else {
-      $e->push(9000, 0, NULL, 'Unknown System Error.');
-    }
-    return $e;
-  }
-  /**
-   * Transfer method not in use
-   *
-   * @param array $params  name value pair of contribution data
-   *
-   * @return void
-   * @access public
-   *
-   */
-  function doTransferCheckout(&$params, $component) {
-    CRM_Core_Error::fatal(ts('Use direct billing instead of Transfer method.'));
-  }
+  return _clickandpledge_civix_civicrm_managed($entities);
 }
