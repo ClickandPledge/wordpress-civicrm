@@ -295,7 +295,8 @@ class CRM_Core_Payment_ClickandPledge extends CRM_Core_Payment {
 		 }
 		$ResultCode        = $response->OperationResult->ResultCode;
 		$ResultData        = $response->OperationResult->ResultData;
-	    $transation_number = $response->OperationResult->VaultGUID;
+	    $transation_number = $response->OperationResult->TransactionNumber;
+	
 		
 		if($ResultCode  ==  '0')
 		{
@@ -458,7 +459,8 @@ class CRM_Core_Payment_ClickandPledge extends CRM_Core_Payment {
   {
 
 	    $configValues = $this->_paymentProcessor;
-		$cnpVersion   = "3.000.000/WP:v".get_bloginfo('version')."/CiviCRM:v".CRM_Utils_System::version();
+		//$cnpVersion   = "3.000.000/WP:v".get_bloginfo('version')."/CiviCRM:v".CRM_Utils_System::version();
+	    $cnpVersion    =  "03.1912000104-WP".get_bloginfo('version')."/CC".CRM_Utils_System::version();
 		$dom          = new DOMDocument('1.0', 'UTF-8');
 		
         $root = $dom->createElement('CnPAPI', '');

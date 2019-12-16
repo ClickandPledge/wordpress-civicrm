@@ -11,9 +11,9 @@
     <author>Kamran Razvan</author>
     <email>Kamran@clickandpledge.com</email>
   </maintainer>
-  <releaseDate>2016-12-22</releaseDate>
-  <version>3.000.000</version>
-  <compatibility><ver>4.7</ver></compatibility>
+  <releaseDate>2019-12-16</releaseDate>
+  <version>03.1912000104-WP5.3.1/CC5.20.1</version>
+  <compatibility><ver>5.20</ver></compatibility>
   <comments>For support, please contact project team on the forums.</comments>
   <civix>
     <namespace>CRM/ClickandPledge</namespace>

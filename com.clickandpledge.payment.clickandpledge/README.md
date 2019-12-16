@@ -1,15 +1,15 @@
-CiviCRM ClickandPledge Payment Processor
+# CiviCRM ClickandPledge Payment Processor #
 ----------------------------------------
 
-More info on how to change:  http://manual.clickandpledge.com/CiviCRM-WordPress.html  
+More info on how to change:  https://manual.clickandpledge.com/CiviCRM-WordPress.html
 
-CONFIGURATION
+### CONFIGURATION ###
 -------------
 All configuration is in the standard Payment Processors settings area in CiviCRM admin.  
 You will enter your "Account ID" & "GUID"  given by Click & Pledge.  
 
 
-INSTALLATION
+## INSTALLATION ##
 ------------
 For CiviCRM 4.4 & up:  
 1)  Your CiviCRM 'Resource URLs' must be set to the extensions directory relative to Wordpress/CRM base.  Example:/wp-content/uploads/civicrm/ext/
@@ -19,13 +19,13 @@ For CiviCRM 4.4 & up:
 2)  Install extension via CiviCRM's "Manage Extensions" page.  
 
 
-AUTHOR INFO
------------
+### AUTHOR INFO ### 
+-------------------
 Click & Pledge   
 http://clickandpledge.com  
  
 
-OTHER CREDITS
--------------
+### OTHER CREDITS ###
+-----------------
 For bug fixes, new features, and documentiation, thanks to:
 http://forums.clickandpledge.com/forum/platform-product-forums/3rd-party-integrations/civicrm/wordpress-integration
